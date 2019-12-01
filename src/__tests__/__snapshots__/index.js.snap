@@ -1,0 +1,77 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`appsync middleware test suite Should fail if the event length does not match the response length 1`] = `[Error: BatchInvoke: The response does not match the request payload]`;
+
+exports[`appsync middleware test suite Should handle a GraphQlError error 1`] = `
+Object {
+  "data": Object {
+    "some": "data",
+  },
+  "errorInfo": Object {
+    "info": "value",
+  },
+  "errorMessage": "Error message",
+  "errorType": "Error",
+}
+`;
+
+exports[`appsync middleware test suite Should handle a GraphQlError response 1`] = `
+Object {
+  "data": Object {
+    "some": "data",
+  },
+  "errorInfo": Object {
+    "info": "value",
+  },
+  "errorMessage": "Returned Error message",
+  "errorType": "ReturnedError",
+}
+`;
+
+exports[`appsync middleware test suite Should handle a returned GraphQlError with async 1`] = `
+Object {
+  "data": Object {
+    "some": "data",
+  },
+  "errorInfo": Object {
+    "info": "value",
+  },
+  "errorMessage": "Returned Error message",
+  "errorType": "ReturnedError",
+}
+`;
+
+exports[`appsync middleware test suite Should handle a thrown GraphQlError 1`] = `
+Object {
+  "data": Object {
+    "some": "data",
+  },
+  "errorInfo": Object {
+    "info": "value",
+  },
+  "errorMessage": "Thrown Error message",
+  "errorType": "Thrown Error",
+}
+`;
+
+exports[`appsync middleware test suite Should handle a thrown GraphQlError with async 1`] = `
+Object {
+  "data": Object {
+    "some": "data",
+  },
+  "errorInfo": Object {
+    "info": "value",
+  },
+  "errorMessage": "Thrown Error message",
+  "errorType": "Thrown Error",
+}
+`;
+
+exports[`appsync middleware test suite Should wrap the response in a GraphQl template 1`] = `
+Object {
+  "data": Object {
+    "field1": "foo",
+    "field2": "bar",
+  },
+}
+`;
