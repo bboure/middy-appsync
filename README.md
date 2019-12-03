@@ -85,9 +85,7 @@ You can acheive that with the a `GraphQlError` object in different ways:
 
 **Notes:**
 
-Resolving or returning any *Error* other than `GraphQlError` as a *response* will be handled by the middleware but the `errorMessage` will be concealed into a "generic" `Internal Server Error`. This is a prevention measure only in order to avoid leaking sensitive data. **It is not recommended to return any other Error than `GraphQlError` as a response.**
-
-Throwing or rejecting any *Error* other than `GraphQlError` will **not** be handled by the middleware and be treated a "normal" *Error*. You will still need to handle it yourself (e.g: in another middlware).
+Any *Error* other than `GraphQlError` will be handled by the middleware but the `errorMessage` will be concealed into a "generic" `Internal Server Error`. This is a prevention measure in order to avoid leaking sensitive error logs.
 
 Example:
 

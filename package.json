@@ -6,8 +6,11 @@
   "scripts": {
     "test": "jest",
     "build": "babel src/ -d dist/ --delete-dir-on-start --ignore **/*.test.js",
-    "prepublish": "yarn run build"
+    "prepare": "yarn run build"
   },
+  "files": [
+    "/dist"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bboure/middy-appsync.git"

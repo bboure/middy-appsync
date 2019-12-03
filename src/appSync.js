@@ -19,18 +19,14 @@ const buildResponse = (response) => {
 export function appSync () {
   return {
     onError: async (handler, next) => {
-      if (handler.error instanceof GraphQlError) {
-        const response = buildResponse(handler.error)
-        if (Array.isArray(handler.event)) {
-          handler.response = times(handler.event.length, constant(response))
-        } else {
-          handler.response = response
-        }
-
-        return false
+      const response = buildResponse(handler.error)
+      if (Array.isArray(handler.event)) {
+        handler.response = times(handler.event.length, constant(response))
+      } else {
+        handler.response = response
       }
 
-      return handler.error
+      return false
     },
 
     after: async (handler) => {

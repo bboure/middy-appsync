@@ -103,7 +103,7 @@ describe('appsync middleware test suite', () => {
     })
   })
 
-  it('Should handle an standard Error', () => {
+  it('Should handle a standard Error anonymously', () => {
     const handler = middy((event, _, cb) => {
       cb(new Error('Some Error'))
     })
@@ -111,9 +111,8 @@ describe('appsync middleware test suite', () => {
     handler.use(appSync())
 
     handler({}, {}, (error, response) => {
-      expect(error).toBeInstanceOf(Error)
-      expect(error.message).toEqual('Some Error')
-      expect(response).toBeUndefined()
+      expect(error).toBeNull()
+      expect(response.errorMessage).toEqual('Internal Server Error')
     })
   })
 
@@ -124,22 +123,22 @@ describe('appsync middleware test suite', () => {
 
     handler.use(appSync())
 
-    handler({}, {}, (_, response) => {
+    handler({}, {}, (error, response) => {
+      expect(error).toBeNull()
       expect(response.errorMessage).toEqual('Internal Server Error')
     })
   })
 
-  it('Should not handle a standard Error', () => {
-    const error = new Error('Uncaught ReferenceError: myVar is not defined at index.js:123:456')
+  it('Should handle a standard Error anonymously', () => {
     const handler = middy((event, _, cb) => {
-      cb(error)
+      cb(new Error('Uncaught ReferenceError: myVar is not defined at index.js:123:456'))
     })
 
     handler.use(appSync())
 
     handler({}, {}, (error, response) => {
-      expect(error).toBe(error)
-      expect(response).toBeUndefined()
+      expect(error).toBeNull()
+      expect(response.errorMessage).toEqual('Internal Server Error')
     })
   })
 
