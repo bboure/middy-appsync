@@ -1,5 +1,5 @@
-import appSync from '../index'
-import { GraphQlError } from '../error'
+import { appSync, GraphQlError } from '../index'
+
 const middy = require('middy')
 
 describe('appsync middleware test suite', () => {
@@ -103,7 +103,7 @@ describe('appsync middleware test suite', () => {
     })
   })
 
-  it('Should handle an Error', () => {
+  it('Should handle an standard Error', () => {
     const handler = middy((event, _, cb) => {
       cb(new Error('Some Error'))
     })
@@ -111,13 +111,13 @@ describe('appsync middleware test suite', () => {
     handler.use(appSync())
 
     handler({}, {}, (error, response) => {
-      expect(error).toBeAnInstanceof(Error)
+      expect(error).toBeInstanceOf(Error)
       expect(error.message).toEqual('Some Error')
       expect(response).toBeUndefined()
     })
   })
 
-  it('Should handle a non GraphQl Error response anonymously', () => {
+  it('Should handle a standard Error response anonymously', () => {
     const handler = middy((event, _, cb) => {
       cb(null, new Error('Uncaught ReferenceError: myVar is not defined at index.js:123:456'))
     })
@@ -125,11 +125,11 @@ describe('appsync middleware test suite', () => {
     handler.use(appSync())
 
     handler({}, {}, (_, response) => {
-      expect(response.errorMessage).toEqual('errorMessage')
+      expect(response.errorMessage).toEqual('Internal Server Error')
     })
   })
 
-  it('Should not handle a non GraphQl Error', () => {
+  it('Should not handle a standard Error', () => {
     const error = new Error('Uncaught ReferenceError: myVar is not defined at index.js:123:456')
     const handler = middy((event, _, cb) => {
       cb(error)
@@ -138,23 +138,84 @@ describe('appsync middleware test suite', () => {
     handler.use(appSync())
 
     handler({}, {}, (error, response) => {
-      expect(error.message).toBe(error)
+      expect(error).toBe(error)
       expect(response).toBeUndefined()
     })
   })
 
-  it('Should succeed when response matches event', () => {
-    const handler = middy((event, _, cb) => cb(null, [{}, {}]))
-    const middleware = appSync()
-    const spy = jest.spyOn(middleware, 'after')
-    handler.use(middleware)
-    handler([{}, {}], {}, async (_, message) => {
-      expect(spy).toHaveBeenCalledTimes(1)
-      await expect(spy.mock.results[0].value).resolves.toBeUndefined()
+  it('Should succeed when response matches event in batches', () => {
+    const handler = middy((event, _, cb) =>
+      cb(null, [
+        { foo: 'bar' },
+        { biz: 'baz' }
+      ]
+      ))
+    handler.use(appSync())
+    handler([{}, {}], {}, (_, message) => {
+      expect(message).toMatchSnapshot()
     })
   })
 
-  it('Should fail if the event length does not match the response length', () => {
+  it('Should accept mixed errors/responses in batches', () => {
+    const handler = middy((event, _, cb) =>
+      cb(null, [
+        { foo: 'bar' },
+        new GraphQlError('Not Found', 'NotFound')
+      ]
+      ))
+    handler.use(appSync())
+    handler([{}, {}], {}, (_, message) => {
+      expect(message).toMatchSnapshot()
+    })
+  })
+
+  it('Should reject the whole batch when returning an error in batch', () => {
+    const handler = middy((event, _, cb) => {
+      cb(new GraphQlError('Internal Error', 'NotFoundInternal Error'))
+    })
+    handler.use(appSync())
+    handler([{}, {}], {}, (_, message) => {
+      expect(message).toMatchSnapshot()
+    })
+  })
+
+  it('Should reject the whole batch when throwing an error in batch', () => {
+    const handler = middy((event) => {
+      throw new GraphQlError('Internal Error', 'Internal Error')
+    })
+    handler.use(appSync())
+    handler([{}, {}], {}, (_, message) => {
+      expect(message).toMatchSnapshot()
+    })
+  })
+
+  it('Should reject the whole batch when throwing an error in batch with async', () => {
+    const handler = middy(async (event) => {
+      throw new GraphQlError('Internal Error', 'Internal Error')
+    })
+    handler.use(appSync())
+    handler([{}, {}], {}, (_, message) => {
+      expect(message).toMatchSnapshot()
+    })
+  })
+
+  it('Should fail when the response is not an array but the event is', () => {
+    const handler = middy((event, _, cb) => {
+      cb(null, { foo: 'bar' })
+    })
+
+    const middleware = appSync()
+    const spy = jest.spyOn(middleware, 'after')
+
+    handler.use(middleware)
+
+    handler([{}, {}, {}], {}, async (_, message) => {
+      expect(spy).toHaveBeenCalledTimes(1)
+      await expect(spy.mock.results[0].value).rejects.toMatchSnapshot()
+    })
+  })
+
+  it('Should fail when the response length does not match the event length', () => {
     const handler = middy((event, _, cb) => {
       cb(null, [
         'foo',

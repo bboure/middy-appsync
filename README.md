@@ -33,7 +33,7 @@ You can then use it in your response template like so:
 If `errorMessage` is present, it will generate a GraphQl error.
 Otherwise, the `data` field will be returned by the resolver to your field.
 
-The midleware automatically wrap passes a successful response from the lambda function into the `data` field and errors to the `error*` fields.
+The midleware automatically wraps a successful response from the lambda function into the `data` field and any error to the `error*` fields.
 
 # Usage
 
@@ -41,7 +41,7 @@ The midleware automatically wrap passes a successful response from the lambda fu
 
 ````js
 const middy = require('middy');
-const appSync = require('middy-appsync');
+const { appSync } = require('middy-appsync');
 
 const doStuff = (event, context, callback) => {
   callback(null, {
@@ -93,8 +93,7 @@ Example:
 
 ````js
 const middy = require('middy');
-const appSync = require('middy-appsync');
-const { GraphQlError } = require('middy-appsync/errors');
+const { appSync, GraphQlError } = require('middy-appsync');
 
 const doStuff = (event, context, callback) => {
   callback(new GraphQlError('Record not found', 'NotFoundError'));
@@ -127,7 +126,7 @@ If the response is not an array or its length is different from the `event`'s le
 
 ````js
 const middy = require('middy');
-const appSync = require('middy-appsync');
+const { appSync } = require('middy-appsync');
 
 // event is an array
 const doStuff = (event, context, callback) => {
@@ -172,8 +171,7 @@ Example:
 
 ````js
 const middy = require('middy');
-const appSync = require('middy-appsync');
-const { GraphQlError } = require('middy-appsync/errors');
+const { appSync, GraphQlError } = require('middy-appsync');
 
 const doStuff = (event, context, callback) => {
   callback(null, [

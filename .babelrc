@@ -6,7 +6,7 @@
     ["@babel/preset-env",
         {
             "shippedProposals": true,
-            "targets": { "node": "8.16" }
+            "targets": { "node": "8.12" }
         }
     ]
   ]
