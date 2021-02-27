@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`appsync middleware test suite Should accept mixed errors/responses in batches 1`] = `
+exports[`middleware Should accept mixed errors/responses in batches 1`] = `
 Array [
   Object {
     "data": Object {
@@ -16,11 +16,11 @@ Array [
 ]
 `;
 
-exports[`appsync middleware test suite Should fail when the response is not an array but the event is 1`] = `[Error: BatchInvoke: The response does not match the request payload]`;
+exports[`middleware Should fail when the response is not an array but the event is 1`] = `[Error: BatchInvoke: The response does not match the request payload]`;
 
-exports[`appsync middleware test suite Should fail when the response length does not match the event length 1`] = `[Error: BatchInvoke: The response does not match the request payload]`;
+exports[`middleware Should fail when the response length does not match the event length 1`] = `[Error: BatchInvoke: The response does not match the request payload]`;
 
-exports[`appsync middleware test suite Should handle a GraphQlError error 1`] = `
+exports[`middleware Should handle a GraphQlError 1`] = `
 Object {
   "data": Object {
     "some": "data",
@@ -33,7 +33,7 @@ Object {
 }
 `;
 
-exports[`appsync middleware test suite Should handle a GraphQlError response 1`] = `
+exports[`middleware Should handle a GraphQlError response 1`] = `
 Object {
   "data": Object {
     "some": "data",
@@ -46,7 +46,7 @@ Object {
 }
 `;
 
-exports[`appsync middleware test suite Should handle a returned GraphQlError with async 1`] = `
+exports[`middleware Should handle a returned GraphQlError with async 1`] = `
 Object {
   "data": Object {
     "some": "data",
@@ -59,7 +59,7 @@ Object {
 }
 `;
 
-exports[`appsync middleware test suite Should handle a thrown GraphQlError 1`] = `
+exports[`middleware Should handle a thrown GraphQlError 1`] = `
 Object {
   "data": Object {
     "some": "data",
@@ -72,7 +72,7 @@ Object {
 }
 `;
 
-exports[`appsync middleware test suite Should handle a thrown GraphQlError with async 1`] = `
+exports[`middleware Should handle a thrown GraphQlError with async 1`] = `
 Object {
   "data": Object {
     "some": "data",
@@ -85,7 +85,7 @@ Object {
 }
 `;
 
-exports[`appsync middleware test suite Should reject the whole batch when returning an error in batch 1`] = `
+exports[`middleware Should reject the whole batch when returning an error in batch 1`] = `
 Array [
   Object {
     "data": null,
@@ -102,7 +102,7 @@ Array [
 ]
 `;
 
-exports[`appsync middleware test suite Should reject the whole batch when throwing an error in batch 1`] = `
+exports[`middleware Should reject the whole batch when throwing an error in batch 1`] = `
 Array [
   Object {
     "data": null,
@@ -119,7 +119,7 @@ Array [
 ]
 `;
 
-exports[`appsync middleware test suite Should reject the whole batch when throwing an error in batch with async 1`] = `
+exports[`middleware Should reject the whole batch when throwing an error in batch with async 1`] = `
 Array [
   Object {
     "data": null,
@@ -136,7 +136,7 @@ Array [
 ]
 `;
 
-exports[`appsync middleware test suite Should succeed when response matches event in batches 1`] = `
+exports[`middleware Should succeed when response matches event in batches 1`] = `
 Array [
   Object {
     "data": Object {
@@ -151,7 +151,7 @@ Array [
 ]
 `;
 
-exports[`appsync middleware test suite Should wrap the response in a GraphQl template 1`] = `
+exports[`middleware Should wrap the response in an AppSync response object 1`] = `
 Object {
   "data": Object {
     "field1": "foo",

@@ -5,8 +5,8 @@ import { GraphQlError } from '../GraphQlError';
 
 const fakeConext: Context = ({} as unknown) as Context;
 
-describe('appsync middleware test suite', () => {
-  it('Should wrap the response in a GraphQl template', () => {
+describe('middleware', () => {
+  it('Should wrap the response in an AppSync response object', () => {
     const handler = middy((event, context, cb) => {
       cb(null, {
         field1: 'foo',
@@ -21,7 +21,7 @@ describe('appsync middleware test suite', () => {
     });
   });
 
-  it('Should handle a GraphQlError error', () => {
+  it('Should handle a GraphQlError', () => {
     const handler = middy((event, context, cb) => {
       cb(
         new GraphQlError(
@@ -122,6 +122,7 @@ describe('appsync middleware test suite', () => {
 
     handler({}, fakeConext, (error, response) => {
       expect(error).toBeNull();
+      expect(response.errorType).toEqual('InternalError');
       expect(response.errorMessage).toEqual('Internal Server Error');
     });
   });
@@ -140,6 +141,7 @@ describe('appsync middleware test suite', () => {
 
     handler({}, fakeConext, (error, response) => {
       expect(error).toBeNull();
+      expect(response.errorType).toEqual('InternalError');
       expect(response.errorMessage).toEqual('Internal Server Error');
     });
   });
@@ -157,6 +159,7 @@ describe('appsync middleware test suite', () => {
 
     handler({}, fakeConext, (error, response) => {
       expect(error).toBeNull();
+      expect(response.errorType).toEqual('InternalError');
       expect(response.errorMessage).toEqual('Internal Server Error');
     });
   });
@@ -223,7 +226,7 @@ describe('appsync middleware test suite', () => {
 
     handler.use(middleware);
 
-    handler([{}, fakeConext, {}], fakeConext, async () => {
+    handler([{}, {}, {}], fakeConext, async () => {
       expect(spy).toHaveBeenCalledTimes(1);
       await expect(spy.mock.results[0].value).rejects.toMatchSnapshot();
     });
