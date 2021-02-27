@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2019",
+    "strict": true,
+    "outDir": "dist",
+    "declaration": true
+  },
+  "exclude": [
+    "node_modules",
+    "jest.config.js"
+  ],
+  "files": [
+    "src/index.ts"
+  ]
+}
