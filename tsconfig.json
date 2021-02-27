@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "outDir": "dist",
+    "declaration": true
+  },
+  "exclude": [
+    "node_modules",
+    "jest.config.js"
+  ],
+  "files": [
+    "src/index.ts"
+  ]
+}
