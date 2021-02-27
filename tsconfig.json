@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2019",
     "strict": true,
     "outDir": "dist",
     "declaration": true
