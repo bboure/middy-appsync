@@ -11,16 +11,16 @@ npm install --save middy-appsync
 ## Controlled errors
 
 Throwing Errors/Exceptions when you identify a _controlled error_ in your app can be unnecessarely noisy. They cause your Lambda function to **fail** and return an error.
-Errors like `NotFoundException` or `UnauthorizedException` should _not_ raise alarms your monitoring tools, (but still cause the process to end).
+Errors like `NotFoundException` or `UnauthorizedException` should _not_ raise alarms in your monitoring tools, but still cause the process to end, and AppSync to show the Error.
 
-This middleware will catch any controlled error and handle them for you. Your Lambda function will succeed, but AppSync will still return an error.
-Any error that extends `AppSyncError` (exported by this library) will be handled.
+This middleware will catch any controlled error and handle them for you. Your Lambda function will succeed, but AppSync will return the error to the client.
+Any error that extends `AppSyncError` (exported by this library) will be treated like such.
 
 If you still want to monitor thse kind of errors, you can use either the [error-logger](https://github.com/middyjs/middy/tree/master/packages/error-logger) or the [input-output-logger](https://github.com/middyjs/middy/tree/master/packages/input-output-logger)
 
 ## Granular errors with BatchInvoke
 
-When dealing with BatchInvoke, you might have errors that affect a few items of the batch only. This middleware follows the recommendations from the official [AppSync documentation](https://docs.aws.amazon.com/appsync/latest/devguide/tutorial-lambda-resolvers.html#returnin g-individual-errors).
+When dealing with BatchInvoke, you might have errors that affect a few items of the batch only. This middleware follows the recommendations from the official [AppSync documentation](https://docs.aws.amazon.com/appsync/latest/devguide/tutorial-lambda-resolvers.html#returning-individual-errors).
 
 By returning an `AppSyncError` as part of your batch, you can have granular control on which items are in error, and which are successful.
 
@@ -28,7 +28,7 @@ By returning an `AppSyncError` as part of your batch, you can have granular cont
 
 ## VTL response template
 
-The middleware wrpas the response of your handler function in a special object of the following shape:
+The middleware wraps the response of your handler function in a special object of the following shape:
 
 ```ts
 {
@@ -39,11 +39,12 @@ The middleware wrpas the response of your handler function in a special object o
 }
 ```
 
-A sucessful response from the handler will be placed in the `data` property, while any Error/Axception extending `AppSyncError` will be caught and its corresponding attributes will be placed in the `error*` properties.
+A sucessful response from the handler will be placed in the `data` property, while any Error/Exception extending `AppSyncError` will be caught and its corresponding attributes will be placed in the `error*` properties.
 
 Any other unhandled error still will be thrown by your Lambda.
 
-You will need a VTL resposne tempalte that identifies these errors and handles them accordingly.
+You will need a special VTL response template that handles this response format accordingly.
+With this library, you should use the following response template:
 
 ```velocity
 #if($context.error)
@@ -56,7 +57,7 @@ You will need a VTL resposne tempalte that identifies these errors and handles t
 ```
 
 - the first condition takes care of unhandled errors
-- the second, controlled errors (like `NotFoundException`, `UnauthorizedException`)
+- the second, controlled errors (like `NotFoundException`, `UnauthorizedException` or `AppSyncError`)
 - the else, handles successful results.
 
 ## Handler usage
@@ -90,9 +91,9 @@ This example will return the following response to the VTL response mapping temp
 
 ## Error handling
 
-When a _controlled_ error occurs during the execution of your handler, you want to send basic information to the user. You can do so by filling the `message`, `type` and `info` fields.
+When a _controlled_ error occurs during the execution of your handler, you want to send basic information to the client. You can do so by filling the `message`, `type` and `info` fields.
 
-You can acheive that with the a `AppSyncError` object in different ways:
+You can acheive that with the an `AppSyncError` object in different ways:
 
 ### With the callback argument
 
@@ -127,10 +128,38 @@ This will generate the following response:
 
 ```js
 {
-  errorMessage: 'Record not found',
+  errorMessage: 'Resource not found',
   errorType: 'NotFoundError',
   data: null,
   errorInfo: null
+}
+```
+
+And your GraphQL response will look like so:
+
+```GraphQL
+{
+  "data": {
+    "demo": null
+  },
+  "errors": [
+    {
+      "path": [
+        "demo"
+      ],
+      "data": null,
+      "errorType": "NotFound",
+      "errorInfo": null,
+      "locations": [
+        {
+          "line": 2,
+          "column": 3,
+          "sourceName": null
+        }
+      ],
+      "message": "Resource not found"
+    }
+  ]
 }
 ```
 
@@ -180,9 +209,9 @@ Will output
 
 ## BatchInvoke error handling
 
-Just like for normal handlers, throwing a `AppSyncError` or returning it in the first argument of the callback will generate an error. It is worth mentioning that, by doing so, the error will be replicated to **all** elements of the batch (making the full batch invalid).
+Just like for normal handlers, throwing an `AppSyncError` or returning it in the first argument of the callback will generate an error. It is worth mentioning that, by doing so, the error will be replicated to **all** elements of the batch (making the full batch invalid).
 
-You can also have granular control over which elements of the batch are valid or have errors. To do so, you can return a `AppSyncError` for the invalid elements in your batch.
+You can also have granular control over which elements of the batch are valid or have errors. To do so, you can return an `AppSyncError` for the invalid elements in your batch.
 
 Example:
 
@@ -200,7 +229,6 @@ const doStuff = (event) => {
 const handler = middy(doStuff).use(appSync());
 
 module.exports = { handler };
-jest;
 ```
 
 Will output
@@ -231,9 +259,21 @@ This library also comes with Exceptions classes for common use cases:
 - `UnauthorizedException`
 - `NotFoundException`
 
+# Custom Exceptions
+
+You can define your own custom Exceptions by extending the `AppSyncError` class.
+
+```ts
+export class MyException extends AppSyncError {
+  constructor() {
+    super('This is my error', 'MyException');
+  }
+}
+```
+
 # Caveats
 
-AppSync currently does not implement the GraphQl specs properly for the [Errors](https://graphql.github.io/graphql-spec/June2018/#sec-Errors) entry.
+AppSync currently does not implement the latest June2018 GraphQL specs for the [Errors](https://graphql.github.io/graphql-spec/June2018/#sec-Errors) entry.
 
-This middleware is currently limited to AppSync's implementation, using the `message`, `errorType`, `data` and `errorInfo`, entries.
+This middleware sticks to AppSync's current implementation, using the `message`, `errorType`, `data` and `errorInfo`, entries.
 There is an [open issue](https://github.com/aws/aws-appsync-community/issues/71) on AppSync for this.
