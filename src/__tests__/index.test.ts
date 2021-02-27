@@ -1,12 +1,12 @@
 import middy from '@middy/core';
 import { Context } from 'aws-lambda';
 import { appSync } from '../appSync';
-import { GraphQlError } from '../GraphQlError';
+import { AppSyncError, NotFoundException } from '../Errors';
 
 const fakeConext: Context = ({} as unknown) as Context;
 
 describe('middleware', () => {
-  it('Should wrap the response in an AppSync response object', () => {
+  it('should wrap the response in an AppSync response object', () => {
     const handler = middy((event, context, cb) => {
       cb(null, {
         field1: 'foo',
@@ -21,10 +21,10 @@ describe('middleware', () => {
     });
   });
 
-  it('Should handle a GraphQlError', () => {
+  it('should handle an AppSyncError', () => {
     const handler = middy((event, context, cb) => {
       cb(
-        new GraphQlError(
+        new AppSyncError(
           'Error message',
           'Error',
           { some: 'data' },
@@ -40,9 +40,9 @@ describe('middleware', () => {
     });
   });
 
-  it('Should handle a thrown GraphQlError', () => {
+  it('should handle a thrown AppSyncError', () => {
     const handler = middy(() => {
-      throw new GraphQlError(
+      throw new AppSyncError(
         'Thrown Error message',
         'Thrown Error',
         { some: 'data' },
@@ -57,11 +57,11 @@ describe('middleware', () => {
     });
   });
 
-  it('Should handle a GraphQlError response', () => {
+  it('should handle an AppSyncError response', () => {
     const handler = middy((_event, context, cb) => {
       cb(
         null,
-        new GraphQlError(
+        new AppSyncError(
           'Returned Error message',
           'ReturnedError',
           { some: 'data' },
@@ -77,10 +77,10 @@ describe('middleware', () => {
     });
   });
 
-  it('Should handle a thrown GraphQlError with async', () => {
+  it('should handle a thrown AppSyncError with async', () => {
     const handler = middy(
       async (): Promise<unknown> => {
-        throw new GraphQlError(
+        throw new AppSyncError(
           'Thrown Error message',
           'Thrown Error',
           { some: 'data' },
@@ -96,9 +96,23 @@ describe('middleware', () => {
     });
   });
 
-  it('Should handle a returned GraphQlError with async', () => {
+  it('should handle a NotFoundException', () => {
+    const handler = middy(
+      async (): Promise<unknown> => {
+        throw new NotFoundException();
+      },
+    );
+
+    handler.use(appSync());
+
+    handler({}, fakeConext, (_, response) => {
+      expect(response).toMatchSnapshot();
+    });
+  });
+
+  it('should handle a returned AppSyncError with async', () => {
     const handler = middy(async () => {
-      return new GraphQlError(
+      return new AppSyncError(
         'Returned Error message',
         'ReturnedError',
         { some: 'data' },
@@ -113,21 +127,7 @@ describe('middleware', () => {
     });
   });
 
-  it('Should handle a standard Error anonymously', () => {
-    const handler = middy((event, context, cb) => {
-      cb(new Error('Some Error'));
-    });
-
-    handler.use(appSync());
-
-    handler({}, fakeConext, (error, response) => {
-      expect(error).toBeNull();
-      expect(response.errorType).toEqual('InternalError');
-      expect(response.errorMessage).toEqual('Internal Server Error');
-    });
-  });
-
-  it('Should handle a standard Error response anonymously', () => {
+  it('should re-throw standard Error response', () => {
     const handler = middy((event, context, cb) => {
       cb(
         null,
@@ -139,14 +139,13 @@ describe('middleware', () => {
 
     handler.use(appSync());
 
-    handler({}, fakeConext, (error, response) => {
-      expect(error).toBeNull();
-      expect(response.errorType).toEqual('InternalError');
-      expect(response.errorMessage).toEqual('Internal Server Error');
+    handler({}, fakeConext, (error, message) => {
+      expect(error).toMatchSnapshot();
+      expect(message).toMatchSnapshot();
     });
   });
 
-  it('Should handle a standard Error anonymously', () => {
+  it('should re-throw standard Error', () => {
     const handler = middy((event, context, cb) => {
       cb(
         new Error(
@@ -157,14 +156,30 @@ describe('middleware', () => {
 
     handler.use(appSync());
 
-    handler({}, fakeConext, (error, response) => {
-      expect(error).toBeNull();
-      expect(response.errorType).toEqual('InternalError');
-      expect(response.errorMessage).toEqual('Internal Server Error');
+    handler({}, fakeConext, (error, message) => {
+      expect(error).toMatchSnapshot();
+      expect(message).toMatchSnapshot();
     });
   });
 
-  it('Should succeed when response matches event in batches', () => {
+  it('should leave standard Errors', () => {
+    const handler = middy(
+      async (): Promise<unknown> => {
+        throw new Error(
+          'Uncaught ReferenceError: myVar is not defined at index.js:123:456',
+        );
+      },
+    );
+
+    handler.use(appSync());
+
+    handler({}, fakeConext, (error, message) => {
+      expect(error).toMatchSnapshot();
+      expect(message).toMatchSnapshot();
+    });
+  });
+
+  it('should succeed when response matches event in batches', () => {
     const handler = middy((event, context, cb) =>
       cb(null, [{ foo: 'bar' }, { biz: 'baz' }]),
     );
@@ -174,9 +189,9 @@ describe('middleware', () => {
     });
   });
 
-  it('Should accept mixed errors/responses in batches', () => {
+  it('should accept mixed errors/responses in batches', () => {
     const handler = middy((event, context, cb) =>
-      cb(null, [{ foo: 'bar' }, new GraphQlError('Not Found', 'NotFound')]),
+      cb(null, [{ foo: 'bar' }, new AppSyncError('Not Found', 'NotFound')]),
     );
     handler.use(appSync());
     handler([{}, {}], fakeConext, (_, message) => {
@@ -184,9 +199,9 @@ describe('middleware', () => {
     });
   });
 
-  it('Should reject the whole batch when returning an error in batch', () => {
+  it('should reject the whole batch when returning an error', () => {
     const handler = middy((event, context, cb) => {
-      cb(new GraphQlError('Internal Error', 'NotFoundInternal Error'));
+      cb(new AppSyncError('Internal Error', 'Internal Error'));
     });
     handler.use(appSync());
     handler([{}, {}], fakeConext, (_, message) => {
@@ -194,9 +209,9 @@ describe('middleware', () => {
     });
   });
 
-  it('Should reject the whole batch when throwing an error in batch', () => {
+  it('should reject the whole batch when throwing an error', () => {
     const handler = middy(() => {
-      throw new GraphQlError('Internal Error', 'Internal Error');
+      throw new AppSyncError('Internal Error', 'Internal Error');
     });
     handler.use(appSync());
     handler([{}, {}], fakeConext, (_, message) => {
@@ -204,10 +219,10 @@ describe('middleware', () => {
     });
   });
 
-  it('Should reject the whole batch when throwing an error in batch with async', () => {
+  it('should reject the whole batch when throwing an error with async', () => {
     const handler = middy(
       async (): Promise<unknown> => {
-        throw new GraphQlError('Internal Error', 'Internal Error');
+        throw new AppSyncError('Internal Error', 'Internal Error');
       },
     );
     handler.use(appSync());
@@ -216,7 +231,7 @@ describe('middleware', () => {
     });
   });
 
-  it('Should fail when the response is not an array but the event is', () => {
+  it('should fail when the response is not an array but the event is', () => {
     const handler = middy((event, context, cb) => {
       cb(null, { foo: 'bar' });
     });
@@ -232,7 +247,7 @@ describe('middleware', () => {
     });
   });
 
-  it('Should fail when the response length does not match the event length', () => {
+  it('should fail when the response length does not match the event length', () => {
     const handler = middy((event, context, cb) => {
       cb(null, ['foo', 'bar']);
     });

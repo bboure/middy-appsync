@@ -9,7 +9,7 @@
     "lint": "eslint src/",
     "test": "jest",
     "build": "rm -rf dist/* && tsc",
-    "prepublish": "yarn test && yarn build"
+    "prepublish": "npm run test && npm run build"
   },
   "files": [
     "/dist"

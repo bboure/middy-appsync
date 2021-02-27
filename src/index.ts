@@ -1,4 +1,4 @@
 import { appSync } from './appSync';
-import { GraphQlError } from './GraphQlError';
+export * from './Errors';
 
-export { appSync, GraphQlError };
+export { appSync };

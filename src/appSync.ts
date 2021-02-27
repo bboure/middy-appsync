@@ -1,4 +1,4 @@
-import { GraphQlError } from './GraphQlError';
+import { AppSyncError } from './Errors';
 import middy from '@middy/core';
 
 type AppSyncResponse = {
@@ -9,7 +9,7 @@ type AppSyncResponse = {
 };
 
 const buildResponse = (response: unknown): AppSyncResponse => {
-  if (response instanceof GraphQlError) {
+  if (response instanceof AppSyncError) {
     return {
       data: response.data,
       errorInfo: response.info,
@@ -17,10 +17,8 @@ const buildResponse = (response: unknown): AppSyncResponse => {
       errorMessage: response.message,
     };
   } else if (response instanceof Error) {
-    return {
-      errorType: 'InternalError',
-      errorMessage: 'Internal Server Error',
-    };
+    // re-throw returned errors
+    throw response;
   } else {
     return { data: response };
   }
@@ -42,7 +40,6 @@ export const appSync: middy.Middleware<unknown, unknown> = () => {
 
     after: async (handler) => {
       const { response } = handler;
-
       if (Array.isArray(handler.event)) {
         if (
           !Array.isArray(response) ||

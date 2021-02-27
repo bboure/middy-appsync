@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`middleware Should accept mixed errors/responses in batches 1`] = `
+exports[`middleware should accept mixed errors/responses in batches 1`] = `
 Array [
   Object {
     "data": Object {
@@ -16,11 +16,59 @@ Array [
 ]
 `;
 
-exports[`middleware Should fail when the response is not an array but the event is 1`] = `[Error: BatchInvoke: The response does not match the request payload]`;
+exports[`middleware should fail when the response is not an array but the event is 1`] = `[Error: BatchInvoke: The response does not match the request payload]`;
 
-exports[`middleware Should fail when the response length does not match the event length 1`] = `[Error: BatchInvoke: The response does not match the request payload]`;
+exports[`middleware should fail when the response length does not match the event length 1`] = `[Error: BatchInvoke: The response does not match the request payload]`;
 
-exports[`middleware Should handle a GraphQlError 1`] = `
+exports[`middleware should handle a NotFoundException 1`] = `
+Object {
+  "data": null,
+  "errorInfo": null,
+  "errorMessage": "Resource not found",
+  "errorType": "NotFound",
+}
+`;
+
+exports[`middleware should handle a returned AppSyncError with async 1`] = `
+Object {
+  "data": Object {
+    "some": "data",
+  },
+  "errorInfo": Object {
+    "info": "value",
+  },
+  "errorMessage": "Returned Error message",
+  "errorType": "ReturnedError",
+}
+`;
+
+exports[`middleware should handle a thrown AppSyncError 1`] = `
+Object {
+  "data": Object {
+    "some": "data",
+  },
+  "errorInfo": Object {
+    "info": "value",
+  },
+  "errorMessage": "Thrown Error message",
+  "errorType": "Thrown Error",
+}
+`;
+
+exports[`middleware should handle a thrown AppSyncError with async 1`] = `
+Object {
+  "data": Object {
+    "some": "data",
+  },
+  "errorInfo": Object {
+    "info": "value",
+  },
+  "errorMessage": "Thrown Error message",
+  "errorType": "Thrown Error",
+}
+`;
+
+exports[`middleware should handle an AppSyncError 1`] = `
 Object {
   "data": Object {
     "some": "data",
@@ -33,7 +81,7 @@ Object {
 }
 `;
 
-exports[`middleware Should handle a GraphQlError response 1`] = `
+exports[`middleware should handle an AppSyncError response 1`] = `
 Object {
   "data": Object {
     "some": "data",
@@ -46,63 +94,19 @@ Object {
 }
 `;
 
-exports[`middleware Should handle a returned GraphQlError with async 1`] = `
-Object {
-  "data": Object {
-    "some": "data",
-  },
-  "errorInfo": Object {
-    "info": "value",
-  },
-  "errorMessage": "Returned Error message",
-  "errorType": "ReturnedError",
-}
-`;
+exports[`middleware should leave standard Errors 1`] = `[Error: Uncaught ReferenceError: myVar is not defined at index.js:123:456]`;
 
-exports[`middleware Should handle a thrown GraphQlError 1`] = `
-Object {
-  "data": Object {
-    "some": "data",
-  },
-  "errorInfo": Object {
-    "info": "value",
-  },
-  "errorMessage": "Thrown Error message",
-  "errorType": "Thrown Error",
-}
-`;
+exports[`middleware should leave standard Errors 2`] = `undefined`;
 
-exports[`middleware Should handle a thrown GraphQlError with async 1`] = `
-Object {
-  "data": Object {
-    "some": "data",
-  },
-  "errorInfo": Object {
-    "info": "value",
-  },
-  "errorMessage": "Thrown Error message",
-  "errorType": "Thrown Error",
-}
-`;
+exports[`middleware should re-throw standard Error 1`] = `[Error: Uncaught ReferenceError: myVar is not defined at index.js:123:456]`;
 
-exports[`middleware Should reject the whole batch when returning an error in batch 1`] = `
-Array [
-  Object {
-    "data": null,
-    "errorInfo": null,
-    "errorMessage": "Internal Error",
-    "errorType": "NotFoundInternal Error",
-  },
-  Object {
-    "data": null,
-    "errorInfo": null,
-    "errorMessage": "Internal Error",
-    "errorType": "NotFoundInternal Error",
-  },
-]
-`;
+exports[`middleware should re-throw standard Error 2`] = `undefined`;
 
-exports[`middleware Should reject the whole batch when throwing an error in batch 1`] = `
+exports[`middleware should re-throw standard Error response 1`] = `[Error: Uncaught ReferenceError: myVar is not defined at index.js:123:456]`;
+
+exports[`middleware should re-throw standard Error response 2`] = `undefined`;
+
+exports[`middleware should reject the whole batch when returning an error 1`] = `
 Array [
   Object {
     "data": null,
@@ -119,7 +123,7 @@ Array [
 ]
 `;
 
-exports[`middleware Should reject the whole batch when throwing an error in batch with async 1`] = `
+exports[`middleware should reject the whole batch when throwing an error 1`] = `
 Array [
   Object {
     "data": null,
@@ -136,7 +140,24 @@ Array [
 ]
 `;
 
-exports[`middleware Should succeed when response matches event in batches 1`] = `
+exports[`middleware should reject the whole batch when throwing an error with async 1`] = `
+Array [
+  Object {
+    "data": null,
+    "errorInfo": null,
+    "errorMessage": "Internal Error",
+    "errorType": "Internal Error",
+  },
+  Object {
+    "data": null,
+    "errorInfo": null,
+    "errorMessage": "Internal Error",
+    "errorType": "Internal Error",
+  },
+]
+`;
+
+exports[`middleware should succeed when response matches event in batches 1`] = `
 Array [
   Object {
     "data": Object {
@@ -151,7 +172,7 @@ Array [
 ]
 `;
 
-exports[`middleware Should wrap the response in an AppSync response object 1`] = `
+exports[`middleware should wrap the response in an AppSync response object 1`] = `
 Object {
   "data": Object {
     "field1": "foo",

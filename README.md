@@ -8,45 +8,68 @@ npm install --save middy-appsync
 
 # Purpose
 
-This middleware follows the recommendations from the official [AppSync documentation](https://docs.aws.amazon.com/appsync/latest/devguide/tutorial-lambda-resolvers.html#returning-individual-errors).
-It wraps the handler's response into a GraphQl Response object of the following shape:
+## Controlled errors
 
-```ts
-{
-  data: Object,
-  errorMessage: string,
-  errorType: string,
-  errorInfo: Object
-}
-```
+Throwing Errors/Exceptions when you identify a _controlled error_ in your app can be unnecessarely noisy. They cause your Lambda function to **fail** and return an error.
+Errors like `NotFoundException` or `UnauthorizedException` should _not_ raise alarms your monitoring tools, (but still cause the process to end).
 
-You can use it with a VTL template:
+This middleware will catch any controlled error and handle them for you. Your Lambda function will succeed, but AppSync will still return an error.
+Any error that extends `AppSyncError` (exported by this library) will be handled.
 
-```velocity
-#if( $context.result && $context.result.errorMessage )
-    $utils.error($context.result.errorMessage, $context.result.errorType, $context.result.data, $context.result.errorInfo)
-#else
-    $utils.toJson($context.result.data)
-#end
-```
+If you still want to monitor thse kind of errors, you can use either the [error-logger](https://github.com/middyjs/middy/tree/master/packages/error-logger) or the [input-output-logger](https://github.com/middyjs/middy/tree/master/packages/input-output-logger)
 
-It will also wotk with [Direct Lambda](https://aws.amazon.com/blogs/mobile/appsync-direct-lambda/)
+## Granular errors with BatchInvoke
 
-The midleware automatically wraps a successful response from the lambda function into the `data` field and any `Error` to the `error*` fields.
+When dealing with BatchInvoke, you might have errors that affect a few items of the batch only. This middleware follows the recommendations from the official [AppSync documentation](https://docs.aws.amazon.com/appsync/latest/devguide/tutorial-lambda-resolvers.html#returnin g-individual-errors).
+
+By returning an `AppSyncError` as part of your batch, you can have granular control on which items are in error, and which are successful.
 
 # Usage
 
-## Basic usage
+## VTL response template
+
+The middleware wrpas the response of your handler function in a special object of the following shape:
+
+```ts
+{
+  data: any, // successfull data or error data
+  errorType: string,
+  errorMessage: string,
+  errorInfo: any,
+}
+```
+
+A sucessful response from the handler will be placed in the `data` property, while any Error/Axception extending `AppSyncError` will be caught and its corresponding attributes will be placed in the `error*` properties.
+
+Any other unhandled error still will be thrown by your Lambda.
+
+You will need a VTL resposne tempalte that identifies these errors and handles them accordingly.
+
+```velocity
+#if($context.error)
+  $util.error("Internal Error", "InternalError", $ctx.result)
+#elseif($context.result && $context.result.errorMessage)
+  $utils.error($context.result.errorMessage, $context.result.errorType, $context.result.data, $context.result.errorInfo)
+#else
+  $utils.toJson($context.result.data)
+#end
+```
+
+- the first condition takes care of unhandled errors
+- the second, controlled errors (like `NotFoundException`, `UnauthorizedException`)
+- the else, handles successful results.
+
+## Handler usage
 
 ```js
 const middy = require('@middy/core');
 const { appSync } = require('middy-appsync');
 
 const doStuff = (event, context, callback) => {
-  callback(null, {
+  return {
     field1: 'Foo',
     field2: 'Bar',
-  });
+  };
 };
 
 const handler = middy(doStuff).use(appSync());
@@ -54,7 +77,7 @@ const handler = middy(doStuff).use(appSync());
 module.exports = { handler };
 ```
 
-Will output
+This example will return the following response to the VTL response mapping template:
 
 ```js
 {
@@ -67,36 +90,32 @@ Will output
 
 ## Error handling
 
-When a "controlled" error occurs during the execution of your handler, you want to send basic information to the user. You can do so by filling the `errorMessage`, `errorType` and `errorInfo` fields.
+When a _controlled_ error occurs during the execution of your handler, you want to send basic information to the user. You can do so by filling the `message`, `type` and `info` fields.
 
-You can acheive that with the a `GraphQlError` object in different ways:
+You can acheive that with the a `AppSyncError` object in different ways:
 
 ### With the callback argument
 
-There are 3 ways to handle errors:
+There are 3 ways to generate an error:
 
-- `throw` a `GraphQlError` or any object that extends the `Error` class.
+- `throw` an `AppSyncError` error.
 - return it as the `error` argument of the callback
 - return it as the `response` argument of the callback
 
 ### With promises/async
 
-- `throw` a `GraphQlError` or any object that extends the `Error` class.
+- `throw` an `AppSyncError` error.
 - return it as the rejected value
 - return it as the resolved value
-
-**Notes:**
-
-Any `Error` object other than `GraphQlError` will be handled by the middleware but the `errorMessage` will be concealed into a "generic" `Internal Server Error` message. This is a prevention measure in order to avoid leaking sensitive error logs.
 
 Example:
 
 ```js
 const middy = require('@middy/core');
-const { appSync, GraphQlError } = require('middy-appsync');
+const { appSync, AppSyncError } = require('middy-appsync');
 
-const doStuff = (event, context, callback) => {
-  callback(new GraphQlError('Record not found', 'NotFoundError'));
+const doStuff = (event) => {
+  throw new AppSyncError('Record not found', 'NotFoundError');
 };
 
 const handler = middy(doStuff).use(appSync());
@@ -104,7 +123,7 @@ const handler = middy(doStuff).use(appSync());
 module.exports = { handler };
 ```
 
-Will output
+This will generate the following response:
 
 ```js
 {
@@ -119,7 +138,7 @@ Will output
 
 The middleware supports [Batching](https://docs.aws.amazon.com/appsync/latest/devguide/tutorial-lambda-resolvers.html#advanced-use-case-batching) resolvers. If it detects that
 the `event` object is an array, it will expect an array as the `response` from the handler and
-wrap each of its elements into a GraphQl response object.
+wrap each of its elements into a response object.
 
 If the response is not an array or its length is different from the `event`'s length, it will throw an Error.
 
@@ -161,26 +180,27 @@ Will output
 
 ## BatchInvoke error handling
 
-Just like for normal handlers, throwing a `GraphQlError` or returning it in the first argument of the callback willgenerated a GraphQL error. It is worth mentioning that, by doing so, the error will be replicated to **all** elements of the batch (making the full batch invalid).
+Just like for normal handlers, throwing a `AppSyncError` or returning it in the first argument of the callback will generate an error. It is worth mentioning that, by doing so, the error will be replicated to **all** elements of the batch (making the full batch invalid).
 
-You an also have granular control over which elements of the batch are valid or have errors. To do so, you can return a `GraphQlError`for the invalid elements in your batch.
+You can also have granular control over which elements of the batch are valid or have errors. To do so, you can return a `AppSyncError` for the invalid elements in your batch.
 
 Example:
 
 ```js
 const middy = require('@middy/core');
-const { appSync, GraphQlError } = require('middy-appsync');
+const { appSync, AppSyncError } = require('middy-appsync');
 
-const doStuff = (event, context, callback) => {
-  callback(null, [
-    new GraphQlError('Post not found', 'NotFound'), // first element is Invalid
+const doStuff = (event) => {
+  return [
+    new AppSyncError('Post not found', 'NotFound'), // first element is Invalid
     { title: 'Bizz', content: 'Bazz' }, // second element is valid
-  ]);
+  ];
 };
 
 const handler = middy(doStuff).use(appSync());
 
 module.exports = { handler };
+jest;
 ```
 
 Will output
@@ -203,6 +223,13 @@ Will output
 ```
 
 This will result in an Error for the first element, and a valid response for the second one.
+
+# Generic Exceptions
+
+This library also comes with Exceptions classes for common use cases:
+
+- `UnauthorizedException`
+- `NotFoundException`
 
 # Caveats
 
