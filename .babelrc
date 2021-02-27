@@ -3,7 +3,7 @@
     ["@babel/preset-env",
         {
             "shippedProposals": true,
-            "targets": { "node": "14.12" }
+            "targets": { "node": "12" }
         }
     ],
     "@babel/preset-typescript"
