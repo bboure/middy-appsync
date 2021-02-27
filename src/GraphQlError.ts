@@ -1,7 +1,7 @@
 export class GraphQlError extends Error {
   type: string;
-  data?: any;
-  info?: any;
+  data?: unknown;
+  info?: unknown;
 
   constructor(
     message: string,
