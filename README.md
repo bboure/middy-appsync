@@ -8,7 +8,7 @@ npm install --save middy-appsync
 
 **Note**
 
-This plugin is currently in beta. The old `0.1.0` version is not recommended. You should use the beta instead, but be aware that it may include breaking changes at any time without notice.
+V1 of this plugin is currently in beta. The old `0.1.0` version is not recommended. You should use the beta instead, but be aware that it may include breaking changes at any time without notice. It recommended on production.
 
 ```bash
 npm install --save middy-appsync@beta
@@ -19,12 +19,12 @@ npm install --save middy-appsync@beta
 ## Controlled errors
 
 Throwing Errors/Exceptions when you identify a _controlled error_ in your app can be unnecessarely noisy. They cause your Lambda function to **fail** and return an error.
-Errors like `NotFoundException` or `UnauthorizedException` should _not_ raise alarms in your monitoring tools, but still cause the process to end, and AppSync to show the Error.
+Errors like `NotFoundException` or `UnauthorizedException` should _not_ raise alarms in your monitoring tools, but still cause the process to end, and AppSync to show (GraphQL) the Error to the client.
 
 This middleware will catch any controlled error and handle them for you. Your Lambda function will succeed, but AppSync will return the error to the client.
 Any error that extends `AppSyncError` (exported by this library) will be treated like such.
 
-If you still want to monitor thse kind of errors, you can use either the [error-logger](https://github.com/middyjs/middy/tree/master/packages/error-logger) or the [input-output-logger](https://github.com/middyjs/middy/tree/master/packages/input-output-logger)
+If you still want to monitor thse kind of errors, you can use the [error-logger](https://github.com/middyjs/middy/tree/master/packages/error-logger) and monitor it via a Cloudwatch metric for example
 
 ## Granular errors with BatchInvoke
 
@@ -105,15 +105,13 @@ You can acheive that with the an `AppSyncError` object in different ways:
 
 ### With the callback argument
 
-There are 3 ways to generate an error:
-
-- `throw` an `AppSyncError` error.
+- `throw` an `AppSyncError`.
 - return it as the `error` argument of the callback
 - return it as the `response` argument of the callback
 
 ### With promises/async
 
-- `throw` an `AppSyncError` error.
+- `throw` an `AppSyncError`.
 - return it as the rejected value
 - return it as the resolved value
 

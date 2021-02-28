@@ -35,6 +35,7 @@ export const appSync: middy.Middleware<unknown, unknown> = () => {
         handler.response = response;
       }
 
+      // mark the error as handled
       return false;
     },
 
