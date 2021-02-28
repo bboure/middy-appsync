@@ -6,6 +6,14 @@
 npm install --save middy-appsync
 ```
 
+**Note**
+
+This plugin is currently in beta. The old `0.1.0` version is not recommended. You should use the beta instead, but be aware that it may include breaking changes at any time without notice.
+
+```bash
+npm install --save middy-appsync@beta
+```
+
 # Purpose
 
 ## Controlled errors
