@@ -8,7 +8,7 @@ npm install --save middy-appsync
 
 **Note**
 
-V1 of this plugin is currently in beta. The old `0.1.0` version is not recommended. You should use the beta instead, but be aware that it may include breaking changes at any time without notice. It recommended on production.
+V1 of this plugin is currently in beta. The old `0.1.0` version is not recommended. You should use the beta instead, but be aware that it may include breaking changes at any time without notice. It is not recommended on production.
 
 ```bash
 npm install --save middy-appsync@beta
@@ -19,12 +19,12 @@ npm install --save middy-appsync@beta
 ## Controlled errors
 
 Throwing Errors/Exceptions when you identify a _controlled error_ in your app can be unnecessarely noisy. They cause your Lambda function to **fail** and return an error.
-Errors like `NotFoundException` or `UnauthorizedException` should _not_ raise alarms in your monitoring tools, but still cause the process to end, and AppSync to show (GraphQL) the Error to the client.
+Errors like `NotFoundException` or `UnauthorizedException` should _not_ raise alarms in your monitoring tools, but still cause the process to end, and AppSync (GraphQL) to return the Error to the client.
 
 This middleware will catch any controlled error and handle them for you. Your Lambda function will succeed, but AppSync will return the error to the client.
-Any error that extends `AppSyncError` (exported by this library) will be treated like such.
+Any error that extends `AppSyncError` (a class exported by this library) will be treated like such.
 
-If you still want to monitor thse kind of errors, you can use the [error-logger](https://github.com/middyjs/middy/tree/master/packages/error-logger) and monitor it via a Cloudwatch metric for example
+If you still want to monitor these kind of errors, you can use the [error-logger](https://github.com/middyjs/middy/tree/master/packages/error-logger) and monitor it via a Cloudwatch metric for example
 
 ## Granular errors with BatchInvoke
 
@@ -52,7 +52,7 @@ A sucessful response from the handler will be placed in the `data` property, whi
 Any other unhandled error still will be thrown by your Lambda.
 
 You will need a special VTL response template that handles this response format accordingly.
-With this library, you should use the following response template:
+You should use the following response template:
 
 ```velocity
 #if($context.error)
@@ -65,7 +65,7 @@ With this library, you should use the following response template:
 ```
 
 - the first condition takes care of unhandled errors
-- the second, controlled errors (like `NotFoundException`, `UnauthorizedException` or `AppSyncError`)
+- the second, controlled errors (like `NotFoundException`, `UnauthorizedException` or custom`AppSyncError`)
 - the else, handles successful results.
 
 ## Handler usage
@@ -99,7 +99,7 @@ This example will return the following response to the VTL response mapping temp
 
 ## Error handling
 
-When a _controlled_ error occurs during the execution of your handler, you want to send basic information to the client. You can do so by filling the `message`, `type` and `info` fields.
+When a _controlled_ error occurs during the execution of your handler, you want to send basic information to the client. You can do so by filling the `message`, `errorType` and `errorInfo` fields of the error section of the GraphQL response.
 
 You can acheive that with the an `AppSyncError` object in different ways:
 
@@ -143,16 +143,14 @@ This will generate the following response:
 
 And your GraphQL response will look like so:
 
-```GraphQL
+```json
 {
   "data": {
     "demo": null
   },
   "errors": [
     {
-      "path": [
-        "demo"
-      ],
+      "path": ["demo"],
       "data": null,
       "errorType": "NotFound",
       "errorInfo": null,
@@ -171,7 +169,7 @@ And your GraphQL response will look like so:
 
 ## BatchInvoke support
 
-The middleware supports [Batching](https://docs.aws.amazon.com/appsync/latest/devguide/tutorial-lambda-resolvers.html#advanced-use-case-batching) resolvers. If it detects that
+The middleware supports [ resolvers](https://docs.aws.amazon.com/appsync/latest/devguide/tutorial-lambda-resolvers.html#advanced-use-case-batching). If it detects that
 the `event` object is an array, it will expect an array as the `response` from the handler and
 wrap each of its elements into a response object.
 
@@ -215,7 +213,7 @@ Will output
 
 ## BatchInvoke error handling
 
-Just like for normal handlers, throwing an `AppSyncError` or returning it in the first argument of the callback will generate an error. It is worth mentioning that, by doing so, the error will be replicated to **all** elements of the batch (making the full batch invalid).
+Just like for normal handlers, throwing an `AppSyncError` or returning it as the result of your Lambda, will generate an error. It is worth noting that, by doing so, the error will be replicated to **all** elements of the batch (making the full batch invalid).
 
 You can also have granular control over which elements of the batch are valid or have errors. To do so, you can return an `AppSyncError` for the invalid elements in your batch.
 
@@ -225,7 +223,7 @@ Example:
 const middy = require('@middy/core');
 const { appSync, AppSyncError } = require('middy-appsync');
 
-const doStuff = (event) => {
+const doStuff = (events) => {
   return [
     new AppSyncError('Post not found', 'NotFound'), // first element is Invalid
     { title: 'Bizz', content: 'Bazz' }, // second element is valid
