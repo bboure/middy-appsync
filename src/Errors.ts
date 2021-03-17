@@ -6,8 +6,8 @@ export class AppSyncError extends Error {
   constructor(
     message: string,
     type = 'UnknownError',
-    data = null,
-    info = null,
+    data: unknown = null,
+    info: unknown = null,
   ) {
     super(message);
     this.type = type;
@@ -28,5 +28,10 @@ export class UnauthorizedException extends AppSyncError {
 export class NotFoundException extends AppSyncError {
   constructor(message?: string) {
     super(message || 'Resource not found', 'NotFound');
+  }
+}
+export class ValidationError extends AppSyncError {
+  constructor(errors: unknown) {
+    super('Input Invalid', 'InvalidInput', null, errors);
   }
 }

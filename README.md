@@ -32,6 +32,10 @@ When dealing with BatchInvoke, you might have errors that affect a few items of 
 
 By returning an `AppSyncError` as part of your batch, you can have granular control on which items are in error, and which are successful.
 
+## Validation
+
+GraphQL comes with type validation out-of-the-box. However, sometimes you might need more advanced valdiation, like checking that a string has a minimum lenght or a specific format.
+
 # Usage
 
 ## VTL response template
@@ -95,6 +99,40 @@ This example will return the following response to the VTL response mapping temp
     field2: 'Bar',
   }
 }
+```
+
+## Validation
+
+For custom data validation, you can use the `validateArgs` option. It takes
+a function that receives the input arguments of your resolver. If the function returns
+`true`, the content is considered valid. If anything else is returned, the content is
+considered invalid. When that happens, the middleware will interrupt the execution
+of the resolver and return a `ValidationError` immediately. The returned value will also
+be passed in the `errorInfo` of the [resolver response](#vtl-response-template).
+
+This middleware is agnostic of any validation library. You can use your favourite one or implement your own validation.
+
+```js
+const middy = require('@middy/core');
+const { appSync, AppSyncError } = require('middy-appsync');
+
+const doStuff = (event) => {
+  return {};
+};
+
+const handler = middy(doStuff).use(
+  appSync({
+    validateArgs: (args) => {
+      if (args.title.length === 0) {
+        return 'Title cannot be empty';
+      }
+
+      return true;
+    },
+  }),
+);
+
+module.exports = { handler };
 ```
 
 ## Error handling
@@ -262,6 +300,7 @@ This library also comes with Exceptions classes for common use cases:
 
 - `UnauthorizedException`
 - `NotFoundException`
+- `ValidationError`
 
 # Custom Exceptions
 

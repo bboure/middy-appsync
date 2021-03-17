@@ -1,5 +1,6 @@
-import { AppSyncError } from './Errors';
+import { AppSyncError, ValidationError } from './Errors';
 import middy from '@middy/core';
+import { AppSyncResolverEvent } from 'aws-lambda';
 
 type AppSyncResponse = {
   data?: unknown;
@@ -8,7 +9,11 @@ type AppSyncResponse = {
   errorMessage?: string;
 };
 
-const buildResponse = (response: unknown): AppSyncResponse => {
+type MiddyAppSyncConfig<T> = {
+  validateArgs?: (args: T) => Promise<boolean> | boolean | unknown[];
+};
+
+const buildResponse = (response: unknown | Error): AppSyncResponse => {
   if (response instanceof AppSyncError) {
     return {
       data: response.data,
@@ -24,8 +29,37 @@ const buildResponse = (response: unknown): AppSyncResponse => {
   }
 };
 
-export const appSync: middy.Middleware<unknown, unknown> = () => {
+export const appSync = <T = unknown>(
+  config?: MiddyAppSyncConfig<T>,
+): middy.MiddlewareObject<AppSyncResolverEvent<T>, unknown> => {
   return {
+    before: async (handler) => {
+      if (config?.validateArgs) {
+        if (Array.isArray(handler.event)) {
+          const result = handler.event.map((event) => {
+            return config.validateArgs(event.args);
+          });
+
+          if (result.some((result) => !result)) {
+            handler.response = result.map((result) => {
+              if (!result) {
+                return new ValidationError(result || null);
+              }
+
+              return null;
+            });
+          }
+        } else {
+          const result = config.validateArgs(handler.event.arguments);
+          if (result !== true) {
+            throw new ValidationError(result || null);
+          }
+        }
+      }
+
+      return handler;
+    },
+
     onError: async (handler) => {
       const response = buildResponse(handler.error);
       if (Array.isArray(handler.event)) {
