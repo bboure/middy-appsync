@@ -1,265 +1,197 @@
 import middy from '@middy/core';
 import { Context } from 'aws-lambda';
 import { appSync } from '../appSync';
-import { AppSyncError, NotFoundException } from '../Errors';
+import { AppSyncError } from '../errors';
+import { describe, expect, it } from 'vitest';
 
-const fakeConext: Context = ({} as unknown) as Context;
+const fakeContext: Context = {} as unknown as Context;
 
 describe('middleware', () => {
-  it('should wrap the response in an AppSync response object', () => {
-    const handler = middy((event, context, cb) => {
-      cb(null, {
-        field1: 'foo',
-        field2: 'bar',
+  it('should wrap the response in an AppSync response object', async () => {
+    const handler = middy()
+      .use(appSync())
+      .handler(async () => {
+        return {
+          field1: 'foo',
+          field2: 'bar',
+        };
       });
-    });
 
-    handler.use(appSync());
-
-    handler({}, fakeConext, (_, response) => {
-      expect(response).toMatchSnapshot();
-    });
+    const result = handler({}, fakeContext);
+    await expect(result).resolves.toMatchInlineSnapshot(`
+      {
+        "data": {
+          "field1": "foo",
+          "field2": "bar",
+        },
+      }
+    `);
   });
 
-  it('should handle an AppSyncError', () => {
-    const handler = middy((event, context, cb) => {
-      cb(
-        new AppSyncError(
+  it('should handle an AppSyncError', async () => {
+    const handler = middy()
+      .use(appSync())
+      .handler(async () => {
+        throw new AppSyncError(
           'Error message',
           'Error',
           { some: 'data' },
           { info: 'value' },
-        ),
-      );
-    });
+        );
+      });
 
-    handler.use(appSync());
-
-    handler({}, fakeConext, (_, response) => {
-      expect(response).toMatchSnapshot();
-    });
+    const result = handler({}, fakeContext);
+    await expect(result).resolves.toMatchInlineSnapshot(`
+      {
+        "data": {
+          "some": "data",
+        },
+        "errorInfo": {
+          "info": "value",
+        },
+        "errorMessage": "Error message",
+        "errorType": "Error",
+      }
+    `);
   });
 
-  it('should handle a thrown AppSyncError', () => {
-    const handler = middy(() => {
-      throw new AppSyncError(
-        'Thrown Error message',
-        'Thrown Error',
-        { some: 'data' },
-        { info: 'value' },
-      );
-    });
-
-    handler.use(appSync());
-
-    handler({}, fakeConext, (_, response) => {
-      expect(response).toMatchSnapshot();
-    });
-  });
-
-  it('should handle an AppSyncError response', () => {
-    const handler = middy((_event, context, cb) => {
-      cb(
-        null,
-        new AppSyncError(
+  it('should handle an AppSyncError response', async () => {
+    const handler = middy()
+      .use(appSync())
+      .handler(async () => {
+        return new AppSyncError(
           'Returned Error message',
           'ReturnedError',
           { some: 'data' },
           { info: 'value' },
-        ),
-      );
-    });
-
-    handler.use(appSync());
-
-    handler({}, fakeConext, (_, response) => {
-      expect(response).toMatchSnapshot();
-    });
-  });
-
-  it('should handle a thrown AppSyncError with async', () => {
-    const handler = middy(
-      async (): Promise<unknown> => {
-        throw new AppSyncError(
-          'Thrown Error message',
-          'Thrown Error',
-          { some: 'data' },
-          { info: 'value' },
         );
-      },
-    );
+      });
 
-    handler.use(appSync());
-
-    handler({}, fakeConext, (_, response) => {
-      expect(response).toMatchSnapshot();
-    });
+    const result = handler({}, fakeContext);
+    await expect(result).resolves.toMatchInlineSnapshot(`
+      {
+        "data": {
+          "some": "data",
+        },
+        "errorInfo": {
+          "info": "value",
+        },
+        "errorMessage": "Returned Error message",
+        "errorType": "ReturnedError",
+      }
+    `);
   });
 
-  it('should handle a NotFoundException', () => {
-    const handler = middy(
-      async (): Promise<unknown> => {
-        throw new NotFoundException();
-      },
-    );
-
-    handler.use(appSync());
-
-    handler({}, fakeConext, (_, response) => {
-      expect(response).toMatchSnapshot();
-    });
-  });
-
-  it('should handle a returned AppSyncError with async', () => {
-    const handler = middy(async () => {
-      return new AppSyncError(
-        'Returned Error message',
-        'ReturnedError',
-        { some: 'data' },
-        { info: 'value' },
-      );
-    });
-
-    handler.use(appSync());
-
-    handler({}, fakeConext, (_, response) => {
-      expect(response).toMatchSnapshot();
-    });
-  });
-
-  it('should re-throw standard Error response', () => {
-    const handler = middy((event, context, cb) => {
-      cb(
-        null,
-        new Error(
-          'Uncaught ReferenceError: myVar is not defined at index.js:123:456',
-        ),
-      );
-    });
-
-    handler.use(appSync());
-
-    handler({}, fakeConext, (error, message) => {
-      expect(error).toMatchSnapshot();
-      expect(message).toMatchSnapshot();
-    });
-  });
-
-  it('should re-throw standard Error', () => {
-    const handler = middy((event, context, cb) => {
-      cb(
-        new Error(
-          'Uncaught ReferenceError: myVar is not defined at index.js:123:456',
-        ),
-      );
-    });
-
-    handler.use(appSync());
-
-    handler({}, fakeConext, (error, message) => {
-      expect(error).toMatchSnapshot();
-      expect(message).toMatchSnapshot();
-    });
-  });
-
-  it('should leave standard Errors', () => {
-    const handler = middy(
-      async (): Promise<unknown> => {
+  it('should maintain thrown Errors', async () => {
+    const handler = middy()
+      .use(appSync())
+      .handler(async () => {
         throw new Error(
           'Uncaught ReferenceError: myVar is not defined at index.js:123:456',
         );
-      },
+      });
+
+    const result = handler({}, fakeContext);
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[Error: Uncaught ReferenceError: myVar is not defined at index.js:123:456]`,
     );
-
-    handler.use(appSync());
-
-    handler({}, fakeConext, (error, message) => {
-      expect(error).toMatchSnapshot();
-      expect(message).toMatchSnapshot();
-    });
   });
 
-  it('should succeed when response matches event in batches', () => {
-    const handler = middy((event, context, cb) =>
-      cb(null, [{ foo: 'bar' }, { biz: 'baz' }]),
-    );
-    handler.use(appSync());
-    handler([{}, {}], fakeConext, (_, message) => {
-      expect(message).toMatchSnapshot();
-    });
+  it('should succeed when response matches event in batches', async () => {
+    const handler = middy()
+      .use(appSync())
+      .handler(() => [{ foo: 'bar' }, { biz: 'baz' }]);
+
+    const result = handler({}, fakeContext);
+    await expect(result).resolves.toMatchInlineSnapshot(`
+      {
+        "data": [
+          {
+            "foo": "bar",
+          },
+          {
+            "biz": "baz",
+          },
+        ],
+      }
+    `);
   });
 
-  it('should accept mixed errors/responses in batches', () => {
-    const handler = middy((event, context, cb) =>
-      cb(null, [{ foo: 'bar' }, new AppSyncError('Not Found', 'NotFound')]),
-    );
-    handler.use(appSync());
-    handler([{}, {}], fakeConext, (_, message) => {
-      expect(message).toMatchSnapshot();
-    });
+  it('should accept mixed errors/responses in batches', async () => {
+    const handler = middy()
+      .use(appSync())
+      .handler(() => [
+        { foo: 'bar' },
+        new AppSyncError('Not Found', 'NotFound'),
+      ]);
+
+    const result = handler([{}, {}], fakeContext);
+    await expect(result).resolves.toMatchInlineSnapshot(`
+      [
+        {
+          "data": {
+            "foo": "bar",
+          },
+        },
+        {
+          "data": null,
+          "errorInfo": null,
+          "errorMessage": "Not Found",
+          "errorType": "NotFound",
+        },
+      ]
+    `);
   });
 
-  it('should reject the whole batch when returning an error', () => {
-    const handler = middy((event, context, cb) => {
-      cb(new AppSyncError('Internal Error', 'Internal Error'));
-    });
-    handler.use(appSync());
-    handler([{}, {}], fakeConext, (_, message) => {
-      expect(message).toMatchSnapshot();
-    });
-  });
-
-  it('should reject the whole batch when throwing an error', () => {
-    const handler = middy(() => {
-      throw new AppSyncError('Internal Error', 'Internal Error');
-    });
-    handler.use(appSync());
-    handler([{}, {}], fakeConext, (_, message) => {
-      expect(message).toMatchSnapshot();
-    });
-  });
-
-  it('should reject the whole batch when throwing an error with async', () => {
-    const handler = middy(
-      async (): Promise<unknown> => {
+  it('should reject the whole batch when throwing an error', async () => {
+    const handler = middy()
+      .use(appSync())
+      .handler(() => {
         throw new AppSyncError('Internal Error', 'Internal Error');
-      },
+      });
+
+    const result = handler([{}, {}], fakeContext);
+    await expect(result).resolves.toMatchInlineSnapshot(`
+      [
+        {
+          "data": null,
+          "errorInfo": null,
+          "errorMessage": "Internal Error",
+          "errorType": "Internal Error",
+        },
+        {
+          "data": null,
+          "errorInfo": null,
+          "errorMessage": "Internal Error",
+          "errorType": "Internal Error",
+        },
+      ]
+    `);
+  });
+
+  it('should fail when the response is not an array but the event is', async () => {
+    const handler = middy()
+      .use(appSync())
+      .handler(() => {
+        return { foo: 'bar' };
+      });
+
+    const result = handler([{}, {}, {}], fakeContext);
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[Error: BatchInvoke: The response does not match the request payload]`,
     );
-    handler.use(appSync());
-    handler([{}, {}], fakeConext, (_, message) => {
-      expect(message).toMatchSnapshot();
-    });
   });
 
-  it('should fail when the response is not an array but the event is', () => {
-    const handler = middy((event, context, cb) => {
-      cb(null, { foo: 'bar' });
-    });
+  it('should fail when the response length does not match the event length', async () => {
+    const handler = middy()
+      .use(appSync())
+      .handler(async () => {
+        return [{}, {}];
+      });
 
-    const middleware = appSync();
-    const spy = jest.spyOn(middleware, 'after');
-
-    handler.use(middleware);
-
-    handler([{}, {}, {}], fakeConext, async () => {
-      expect(spy).toHaveBeenCalledTimes(1);
-      await expect(spy.mock.results[0].value).rejects.toMatchSnapshot();
-    });
-  });
-
-  it('should fail when the response length does not match the event length', () => {
-    const handler = middy((event, context, cb) => {
-      cb(null, ['foo', 'bar']);
-    });
-
-    const middleware = appSync();
-    const spy = jest.spyOn(middleware, 'after');
-
-    handler.use(middleware);
-
-    handler([{}, fakeConext, {}], fakeConext, async () => {
-      expect(spy).toHaveBeenCalledTimes(1);
-      await expect(spy.mock.results[0].value).rejects.toMatchSnapshot();
-    });
+    const result = handler([{}, {}, {}], fakeContext);
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[Error: BatchInvoke: The response does not match the request payload]`,
+    );
   });
 });

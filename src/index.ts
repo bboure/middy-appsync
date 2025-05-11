@@ -1,4 +1,3 @@
-import { appSync } from './appSync';
-export * from './Errors';
-
-export { appSync };
+export * from './errors';
+export * from './cdk';
+export * from './appSync';

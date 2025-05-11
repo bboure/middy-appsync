@@ -1,16 +1,12 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es2019",
+    "target": "ESNext",
     "strict": true,
     "outDir": "dist",
-    "declaration": true
+    "declaration": true,
+    "skipLibCheck": true
   },
-  "exclude": [
-    "node_modules",
-    "jest.config.js"
-  ],
-  "files": [
-    "src/index.ts"
-  ]
+  "exclude": ["node_modules", "jest.config.ts"],
+  "files": ["src/index.ts"]
 }

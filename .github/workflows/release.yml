@@ -10,14 +10,14 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 22
       - name: Install dependencies
-        run: npm i
+        run: npm ci
       - name: Run lint
         run: npm run lint
       - name: Run tests
